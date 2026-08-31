@@ -28,27 +28,39 @@ serve(async (req) => {
       });
     }
 
-    // 2. Ping sites concurrently
+    // 2. Ping sites concurrently — 10s timeout, DOWN on network error OR non-2xx/3xx
     const promises = sites.map(async (site) => {
       const start = Date.now();
-      let status = "down";
-      let statusCode = null;
-      let responseTime = null;
+      let status: "up" | "down" = "down";
+      let statusCode: number | null = null;
+      let responseTime: number | null = null;
 
       try {
-        // Set a 10s timeout using AbortController
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const res = await fetch(site.url, { signal: controller.signal });
+        const res = await fetch(site.url, {
+          signal: controller.signal,
+          redirect: "follow",
+        });
         clearTimeout(timeoutId);
 
-        status = "up";
         statusCode = res.status;
         responseTime = Date.now() - start;
+
+        // Treat 2xx-3xx as UP, 4xx/5xx + network failures as DOWN
+        // 500s are real outages; 4xx often means site misconfig but we still flag as DOWN
+        if (res.ok || (res.status >= 300 && res.status < 400)) {
+          status = "up";
+        } else {
+          status = "down";
+          console.warn(`Site ${site.name} returned HTTP ${res.status} — marking DOWN`);
+        }
       } catch (e) {
         status = "down";
-        responseTime = null;
+        responseTime = Date.now() - start;
+        statusCode = null;
+        console.warn(`Fetch failed for ${site.name} (${site.url}):`, (e as Error).message);
       }
 
       return {

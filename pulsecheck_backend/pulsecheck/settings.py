@@ -183,12 +183,35 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Email Core Bindings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'PulseCheck Alerts <alerts@pulsecheck.com>')
+# Email Core Bindings — Resend (preferred) with SMTP fallback
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', os.getenv('DEFAULT_FROM_EMAIL', 'PulseCheck Alerts <onboarding@resend.dev>'))
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', RESEND_FROM_EMAIL)
 ALERT_EMAIL = os.getenv('ALERT_EMAIL', 'admin@pulsecheck.com')
+
+if RESEND_API_KEY:
+    # Actual sending is via Resend API in monitor/webhook_view.py; keep a no-op backend
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+    # Re-read DEFAULT_FROM_EMAIL in SMTP path if not set via Resend
+    if not os.getenv('DEFAULT_FROM_EMAIL'):
+        DEFAULT_FROM_EMAIL = 'PulseCheck Alerts <alerts@pulsecheck.com>'
+
+# Logging — ensure incident/email activity is visible on Render
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'monitor': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}
