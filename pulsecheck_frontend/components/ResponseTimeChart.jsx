@@ -61,11 +61,14 @@ export default function ResponseTimeChart({ data = [], height = 180 }) {
     Math.round(minVal + (range * i) / yTicks)
   );
 
-  // X-axis labels (show ~5 time labels spread across)
+  // X-axis labels (show ~5 time labels spread across) — guard divide-by-zero when 1 point
   const xLabelCount = Math.min(5, validData.length);
-  const xLabelIndices = Array.from({ length: xLabelCount }, (_, i) =>
-    Math.round((i / (xLabelCount - 1)) * (validData.length - 1))
-  );
+  const xLabelIndices =
+    xLabelCount <= 1
+      ? [0]
+      : Array.from({ length: xLabelCount }, (_, i) =>
+          Math.round((i / (xLabelCount - 1)) * (validData.length - 1))
+        );
 
   const handleMouseMove = useCallback(
     (e) => {
@@ -168,20 +171,24 @@ export default function ResponseTimeChart({ data = [], height = 180 }) {
           </g>
         ))}
 
-        {/* X-axis labels */}
-        {xLabelIndices.map((idx) => (
-          <text
-            key={idx}
-            x={toX(idx)}
-            y={H - 6}
-            textAnchor="middle"
-            fill="#4a5568"
-            fontSize="9"
-            fontFamily="'DM Mono', monospace"
-          >
-            {formatTime(validData[idx].time)}
-          </text>
-        ))}
+        {/* X-axis labels — guard undefined */}
+        {xLabelIndices.map((idx) => {
+          const d = validData[idx];
+          if (!d) return null;
+          return (
+            <text
+              key={idx}
+              x={toX(idx)}
+              y={H - 6}
+              textAnchor="middle"
+              fill="#4a5568"
+              fontSize="9"
+              fontFamily="'DM Mono', monospace"
+            >
+              {formatTime(d.time)}
+            </text>
+          );
+        })}
 
         {/* Area fill */}
         <path d={areaPath} fill="url(#rtGradient)" />

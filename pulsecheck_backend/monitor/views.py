@@ -1,3 +1,4 @@
+import logging
 import statistics
 from datetime import timedelta
 
@@ -9,6 +10,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+
+logger = logging.getLogger("monitor")
 
 from .models import Check, Configuration, Incident, Site
 from .serializers import (
@@ -67,6 +70,38 @@ class StatusPagePagination(PageNumberPagination):
 
 class SiteViewSet(ModelViewSet):
     serializer_class = SiteSerializer
+
+    def perform_create(self, serializer):
+        site = serializer.save()
+        logger.info("SITE CREATED id=%s name=%s url=%s user=%s", site.id, site.name, site.url, getattr(self.request.user, "username", "anon"))
+        # Immediate first ping so new sites don't stay "pending" for up to 3 min (cron interval)
+        try:
+            import time as _time
+            import urllib.request
+
+            start = _time.time()
+            # 5s timeout, follow redirects
+            req = urllib.request.Request(site.url, headers={"User-Agent": "PulseCheck/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                status_code = resp.getcode()
+                # 2xx-3xx = up
+                status = "up" if 200 <= status_code < 400 else "down"
+                rt = int((_time.time() - start) * 1000)
+        except Exception as exc:
+            logger.warning("Immediate ping failed for site %s (%s): %s", site.name, site.url, exc)
+            status = "down"
+            status_code = None
+            rt = None
+        Check.objects.create(site=site, status=status, status_code=status_code, response_time=rt)
+        logger.info("Initial check for site %s: %s (%s)", site.id, status, status_code)
+
+    def destroy(self, request, *args, **kwargs):
+        site = self.get_object()
+        logger.warning("SITE DELETE (soft) id=%s name=%s url=%s user=%s IP=%s", site.id, site.name, site.url, getattr(request.user, "username", "anon"), request.META.get("REMOTE_ADDR"))
+        # Soft-delete: never hard-delete rows — keeps checks/incidents and allows restore
+        site.is_active = False
+        site.save(update_fields=["is_active"])
+        return Response(status=204)
 
     def get_queryset(self):
         return (

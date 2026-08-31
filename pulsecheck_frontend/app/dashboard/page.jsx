@@ -74,6 +74,9 @@ export default function Dashboard() {
   });
 
   const handleDeleteClick = (siteId) => {
+    const site = sites.find(s => s.id === siteId) || currentSelectedDetail;
+    const name = site?.name || `monitor #${siteId}`;
+    if (!window.confirm(`Remove "${name}"? This permanently deletes its checks & incidents and cannot be undone.`)) return;
     deleteMutation.mutate(siteId);
   };
 
