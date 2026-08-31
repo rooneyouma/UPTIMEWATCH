@@ -1,5 +1,5 @@
 """
-WSGI config for uptimewatch project.
+WSGI config for PulseCheck.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

@@ -1,5 +1,5 @@
 """
-ASGI config for uptimewatch project.
+ASGI config for PulseCheck.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

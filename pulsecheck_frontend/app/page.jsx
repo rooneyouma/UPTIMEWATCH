@@ -96,7 +96,7 @@ export default function StatusHubPage() {
 
         .hub-table-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 160px 120px;
+          grid-template-columns: 2fr 2fr 160px 120px 32px;
           gap: 16px;
           align-items: center;
           padding: 18px 24px;
@@ -106,19 +106,26 @@ export default function StatusHubPage() {
         }
         .hub-table-header {
           display: grid;
-          grid-template-columns: 2fr 2fr 160px 120px;
+          grid-template-columns: 2fr 2fr 160px 120px 32px;
           gap: 16px;
           align-items: center;
           padding: 12px 24px;
           border-bottom: 1px solid #1a1f2e;
         }
         .hub-row-up:hover { background: rgba(255,255,255,0.02); border-left-color: #00ff88; }
+        .hub-row-up:hover .hub-arrow { opacity: 1; transform: translateX(2px); }
         .hub-row-down:hover { background: rgba(255,59,92,0.03); border-left-color: #ff3b5c; }
+        .hub-row-down:hover .hub-arrow { opacity: 1; transform: translateX(2px); }
+        .hub-arrow {
+          opacity: 0.3;
+          transition: opacity 0.15s, transform 0.15s;
+          flex-shrink: 0;
+        }
 
         @media (max-width: 640px) {
           .hub-table-header { display: none; }
           .hub-table-row {
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 1fr auto auto;
             grid-template-rows: auto auto;
             gap: 8px 12px;
             padding: 16px;
@@ -126,6 +133,7 @@ export default function StatusHubPage() {
           .hub-col-url { display: none; }
           .hub-col-uptime { grid-column: 1 / 2; grid-row: 2 / 3; }
           .hub-col-badge { grid-column: 2 / 3; grid-row: 1 / 3; align-self: center; }
+          .hub-col-arrow { grid-column: 3 / 4; grid-row: 1 / 3; align-self: center; }
           .hub-stat-grid { grid-template-columns: 1fr 1fr !important; }
           .hub-page-pad { padding: 24px 16px !important; }
           .hub-header-pad { padding: 0 16px !important; }
@@ -158,7 +166,7 @@ export default function StatusHubPage() {
       <div className="hub-page-pad" style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 32px" }}>
 
         {/* Page title */}
-        <div style={{ marginBottom: "32px" }}>
+        <div style={{ marginBottom: "32px", textAlign: "center" }}>
           <h1 style={{
             fontFamily: "'Syne', sans-serif",
             fontSize: "28px", fontWeight: 800,
@@ -167,7 +175,7 @@ export default function StatusHubPage() {
           }}>
             MONITOR STATUS
           </h1>
-          <p style={{ fontSize: "12px", color: "#4a5568", letterSpacing: "0.06em" }}>
+          <p style={{ fontSize: "12px", color: "#4a5568", letterSpacing: "0.06em", textAlign: "center" }}>
             Live status for all active monitors · refreshes every 15s
           </p>
         </div>
@@ -200,6 +208,7 @@ export default function StatusHubPage() {
             <span className="hub-col-url" style={{ fontSize: "10px", color: "#4a5568", letterSpacing: "0.12em" }}>URL</span>
             <span style={{ fontSize: "10px", color: "#4a5568", letterSpacing: "0.12em" }}>UPTIME</span>
             <span style={{ fontSize: "10px", color: "#4a5568", letterSpacing: "0.12em" }}>STATUS</span>
+            <span className="hub-col-arrow"></span>
           </div>
 
           {isLoading && (
@@ -272,6 +281,12 @@ export default function StatusHubPage() {
                   <span style={{ fontSize: "9px", letterSpacing: "0.12em", color: dotColor, whiteSpace: "nowrap" }}>
                     {isUp ? "OPERATIONAL" : site.status === "pending" ? "PENDING" : "DOWN"}
                   </span>
+                </div>
+
+                <div className="hub-col-arrow" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg className="hub-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4a5568" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </div>
               </div>
             );
